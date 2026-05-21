@@ -51,7 +51,7 @@ Los tres servicios corren en una red Docker interna aislada. OpenLDAP expone el 
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/TU_USUARIO/gestion-ldap.git
+git clone https://github.com/fmartinez-FP/gestion-ldap.git
 cd gestion-ldap
 
 # 2. Configurar el entorno
