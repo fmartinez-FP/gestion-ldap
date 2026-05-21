@@ -1,0 +1,47 @@
+# Dependencias (se instalan en build)
+vendor/
+node_modules/
+
+# Assets compilados (se compilan en build)
+
+# Entornos
+.env
+.env.*
+!.env.example
+
+# Control de versiones
+.git/
+.gitignore
+.gitattributes
+
+# Docker (no necesarios dentro de la imagen)
+docker-compose*.yml
+Dockerfile
+INSTALL.md
+patches/
+
+# Tests
+tests/
+phpunit.xml
+
+# IDE y editores
+.editorconfig
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs y runtime (se usan volúmenes)
+storage/logs/*.log
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*.php
+bootstrap/cache/config.php
+bootstrap/cache/routes*.php
+bootstrap/cache/services.php
+bootstrap/cache/packages.php
+
+# Ficheros temporales
+*.DS_Store
+Thumbs.db
+*.bak
