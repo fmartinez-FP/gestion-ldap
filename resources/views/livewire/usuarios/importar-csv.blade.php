@@ -30,7 +30,7 @@
     <div class="mt-4 bg-slate-50 rounded-lg p-4 text-xs text-slate-500 space-y-1">
         <p class="font-semibold text-slate-600">Formato del CSV:</p>
         <code class="block font-mono">nombre,apellidos,email,grupos</code>
-        <code class="block font-mono">Juan,García López,jgarcia@educa.madrid.org,ffe;guardias</code>
+        <code class="block font-mono">Juan,García López,jgarcia@micentro.es,ffe;guardias</code>
         <p class="mt-2">Grupos disponibles: <span class="font-mono font-semibold text-slate-700">{{ implode(', ', $gruposValidos) }}</span> (separados por punto y coma)</p>
     </div>
 

@@ -65,13 +65,13 @@
     <div>
       <label class="block text-sm font-semibold text-slate-700 mb-1.5">Correo electrónico <span class="text-red-500">*</span></label>
       <input wire:model.live="mail" type="email"
-        placeholder="juan.garcia@educa.madrid.org"
+        placeholder="juan.garcia@micentro.es"
         {{ $modo === 'editar' ? 'disabled' : '' }}
         class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
           {{ $modo === 'editar' ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : '' }}
           @error('mail') border-red-300 bg-red-50 @enderror">
       @error('mail') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-      <p class="text-slate-400 text-xs mt-1">Debe ser @educa.madrid.org</p>
+      <p class="text-slate-400 text-xs mt-1">Debe ser del dominio configurado en el centro</p>
     </div>
 
     {{-- Preview credenciales (solo crear) --}}

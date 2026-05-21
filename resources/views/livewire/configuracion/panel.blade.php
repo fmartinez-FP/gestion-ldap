@@ -59,7 +59,7 @@
             </div>
             <div class="col-span-2 sm:col-span-1">
                 <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Email remitente</label>
-                <input wire:model="smtpFrom" type="email" placeholder="noreply@iespacifico.es"
+                <input wire:model="smtpFrom" type="email" placeholder="noreply@micentro.es"
                        class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 text-slate-800">
                 @error('smtpFrom') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>

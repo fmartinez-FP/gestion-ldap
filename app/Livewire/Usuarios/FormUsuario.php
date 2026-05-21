@@ -60,7 +60,7 @@ class FormUsuario extends Component
 
     private function calcularUid(): void
     {
-        if (str_contains($this->mail, '@educa.madrid.org')) {
+        if (str_contains($this->mail, '@' . env('MAIL_DOMAIN', 'micentro.es'))) {
             $this->uid_preview      = explode('@', $this->mail)[0];
             $this->password_preview = $this->uid_preview . '1234';
         } else {
@@ -77,7 +77,7 @@ class FormUsuario extends Component
         $this->validate([
             'nombre'    => 'required|min:2|max:100',
             'apellidos' => 'required|min:2|max:100',
-            'mail'      => 'required|email|ends_with:@educa.madrid.org',
+            'mail'      => 'required|email|ends_with:@' . env('MAIL_DOMAIN', 'micentro.es') . '',
             'activo'    => 'boolean',
         ]);
 
