@@ -21,7 +21,7 @@ return [
             'username'         => env('LDAP_USERNAME'),
             'password'         => env('LDAP_PASSWORD'),
             'port'             => env('LDAP_PORT', 389),
-            'base_dn'          => env('LDAP_BASE_DN', 'dc=iespacifico,dc=es'),
+            'base_dn'          => env('LDAP_BASE_DN', env('LDAP_BASE_DN', 'dc=example,dc=es')),
             'timeout'          => env('LDAP_TIMEOUT', 5),
             'use_tls'          => false,
             'use_starttls'     => false,

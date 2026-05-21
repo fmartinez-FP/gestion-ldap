@@ -68,7 +68,7 @@ services:
     privileged: true
     restart: 'no'
     environment:
-      LDAP_ROOT: "dc=iespacifico,dc=es"
+      LDAP_ROOT: "dc=${LDAP_DOMAIN//./,dc=}"
       LDAP_ADMIN_USERNAME: "admin"
       LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD}"
       LDAP_PORT_NUMBER: "389"

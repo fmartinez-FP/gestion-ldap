@@ -28,8 +28,8 @@ Route::middleware(\App\Http\Middleware\AdminAuth::class)->group(function () {
     Route::get('/usuarios/importar',      fn() => view('livewire.usuarios.importar'))->name('usuarios.importar');
     Route::get('/usuarios/plantilla-csv', function () {
         $contenido = "nombre,apellidos,email,grupos\n";
-        $contenido .= "Juan,García López,jgarcia@educa.madrid.org,ffe;guardias\n";
-        $contenido .= "María,Martínez Ruiz,mmartinez@educa.madrid.org,inventarios\n";
+        $contenido .= "Juan,García López,jgarcia@micentro.es,ffe;guardias\n";
+        $contenido .= "María,Martínez Ruiz,mmartinez@micentro.es,inventarios\n";
         return response($contenido, 200, [
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="plantilla_usuarios.csv"',
@@ -71,7 +71,7 @@ Route::middleware(\App\Http\Middleware\AdminAuth::class)->group(function () {
     Route::get('/usuarios/exportar-ldif', function () {
         $ldap     = new \App\Services\LdapService();
         $contenido = $ldap->exportToLdif();
-        $filename  = 'iespacifico_ldap_' . date('Ymd_His') . '.ldif';
+        $filename  = 'ldap_export_' . date('Ymd_His') . '.ldif';
         \App\Models\AuditLog::record('export_ldif', null, ['filename' => $filename]);
         return response($contenido, 200, [
             'Content-Type'        => 'text/plain; charset=UTF-8',

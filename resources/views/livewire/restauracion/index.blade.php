@@ -77,7 +77,7 @@
         <ol class="space-y-1.5 list-decimal list-inside text-xs text-slate-600">
           <li>Buscar en backup: <code class="bg-white px-1 rounded">zcat /opt/backups/FECHA/ldap_HORA.ldif.gz | grep -A 20 "uid=USUARIO,"</code></li>
           <li>Extraer entrada: <code class="bg-white px-1 rounded">zcat backup.ldif.gz | awk '/^dn: uid=USUARIO,/,/^$/' > /tmp/usuario.ldif</code></li>
-          <li>Reimportar: <code class="bg-white px-1 rounded">ldapadd -x -H ldap://127.0.0.1 -D "cn=admin,dc=iespacifico,dc=es" -w "PASS" -f /tmp/usuario.ldif</code></li>
+          <li>Reimportar: <code class="bg-white px-1 rounded">ldapadd -x -H ldap://127.0.0.1 -D "cn=admin,{{ config("ldap.connections.default.base_dn") }}" -w "PASS" -f /tmp/usuario.ldif</code></li>
         </ol>
       </div>
 
@@ -85,7 +85,7 @@
         <h3 class="font-semibold text-slate-700 mb-3">&#9989; Verificacion post-restauracion</h3>
         <div class="font-mono text-xs text-slate-600 bg-white rounded-lg p-4 border border-slate-200 space-y-1">
           <p class="text-slate-400"># Test LDAP</p>
-          <p>ldapsearch -x -H ldap://127.0.0.1 -D "cn=admin,dc=iespacifico,dc=es" -w "LdapAdmin2024!" -b "dc=iespacifico,dc=es" -s base</p>
+          <p>ldapsearch -x -H ldap://127.0.0.1 -D "cn=admin,{{ config("ldap.connections.default.base_dn") }}" -w "[TU_PASSWORD_LDAP_ADMIN]" -b "{{ config("ldap.connections.default.base_dn") }}" -s base</p>
           <p class="text-slate-400 mt-2"># Test MySQL</p>
           <p>mysql -u root gestion_ldap_panel -e "SELECT COUNT(*) FROM aplicaciones;"</p>
           <p class="text-slate-400 mt-2"># Test backup</p>

@@ -24,3 +24,4 @@ Thumbs.db
 # Docker (servidor local, no distribuir)
 migrate-to-docker.sh
 gestion-ldap-docker/
+public/images/logo.png

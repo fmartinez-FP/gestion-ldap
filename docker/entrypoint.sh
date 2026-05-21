@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Entrypoint — Gestor LDAP IES Pacífico
+# Entrypoint — Gestor centralizado de usuarios LDAP
 # Orden: validar env → esperar deps → bootstrap LDAP → migrar DB → cachear → supervisord
 # =============================================================================
 set -e

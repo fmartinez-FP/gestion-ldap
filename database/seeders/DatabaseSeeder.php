@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
             ['username' => 'admin'],
             [
                 'username' => 'admin',
-                'email'    => 'admin@iespacifico.es',
+                'email'    => 'admin@' . env('LDAP_DOMAIN', 'example.es'),
                 'password' => Hash::make('admin1234'),
             ]
         );

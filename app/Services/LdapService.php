@@ -497,7 +497,7 @@ class LdapService
         $lines = [];
         $lines[] = "# Exportación LDIF — " . date('Y-m-d H:i:s');
         $lines[] = "# Servidor: dc=iespacifico,dc=es";
-        $lines[] = "# Generado por Gestión IES Pacífico";
+        $lines[] = "# Generado por Gestor centralizado de usuarios LDAP";
         $lines[] = "";
 
         // ── Cabecera de la base ───────────────────────────────────────────────
