@@ -496,7 +496,7 @@ class LdapService
     {
         $lines = [];
         $lines[] = "# Exportación LDIF — " . date('Y-m-d H:i:s');
-        $lines[] = "# Servidor: dc=iespacifico,dc=es";
+        $lines[] = "# Servidor: " . config('ldap.connections.default.base_dn');
         $lines[] = "# Generado por Gestor centralizado de usuarios LDAP";
         $lines[] = "";
 
