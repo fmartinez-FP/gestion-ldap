@@ -130,7 +130,7 @@
                   </span>
                 </div>
                 <div>
-                  <p class="text-slate-900 font-600 text-sm">{{ $u['nombre_completo'] }}</p>
+                  <p class="text-slate-900 font-600 text-sm">{{ trim($u['apellidos'] . ', ' . $u['nombre'], ', ') }}</p>
                   <p class="text-slate-400 text-xs">{{ $u['uid'] }} · {{ $u['mail'] }}</p>
                 </div>
               </div>
@@ -199,7 +199,7 @@
               </span>
             </div>
             <div>
-              <p class="text-slate-900 font-600 text-sm">{{ $u['nombre_completo'] }}</p>
+              <p class="text-slate-900 font-600 text-sm">{{ trim($u['apellidos'] . ', ' . $u['nombre'], ', ') }}</p>
               <p class="text-slate-400 text-xs">{{ $u['uid'] }}</p>
             </div>
           </div>

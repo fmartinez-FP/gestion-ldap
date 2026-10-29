@@ -225,7 +225,13 @@ class LdapService
             $users[] = $this->parseEntry($entries[$i]);
         }
 
-        usort($users, fn($a, $b) => strcmp($a['nombre_completo'], $b['nombre_completo']));
+        // Orden por apellidos y luego nombre, respetando tildes y la ñ
+        $collator = class_exists(\Collator::class) ? new \Collator('es') : null;
+        $cmp = fn(string $a, string $b) => $collator ? $collator->compare($a, $b) : strcasecmp($a, $b);
+
+        usort($users, fn($a, $b) =>
+            $cmp($a['apellidos'], $b['apellidos']) ?: $cmp($a['nombre'], $b['nombre'])
+        );
         return $users;
     }
 
