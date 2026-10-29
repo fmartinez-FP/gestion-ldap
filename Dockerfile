@@ -56,6 +56,7 @@ COPY docker/php/php.ini        /usr/local/etc/php/conf.d/zzz-custom.ini
 COPY docker/nginx/nginx.conf   /etc/nginx/nginx.conf
 COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf   /etc/supervisor/conf.d/supervisord.conf
+COPY --chmod=755 docker/log-rotate.sh /usr/local/bin/log-rotate.sh
 
 # ── Código de la aplicación ───────────────────────────────────────────────────
 WORKDIR /var/www/html
@@ -75,6 +76,11 @@ RUN mkdir -p storage/logs storage/framework/{cache/data,sessions,views} \
              storage/app/public bootstrap/cache \
  && chown -R www-data:www-data storage bootstrap/cache \
  && chmod -R 775 storage bootstrap/cache
+
+# nginx corre como www-data (ver nginx.conf), pero el paquete de Alpine deja
+# /var/lib/nginx para el usuario "nginx": sin esto, las peticiones/respuestas
+# que no caben en memoria (p. ej. los POST de Livewire en /usuarios) dan 500.
+RUN chown -R www-data:www-data /var/lib/nginx
 
 # Guardar copia de public/ para poblar volumen en primer arranque
 RUN cp -a /var/www/html/public /srv/public-seed
