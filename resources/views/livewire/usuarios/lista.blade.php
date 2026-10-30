@@ -11,6 +11,14 @@
   </div>
   @endif
 
+  {{-- Error --}}
+  @if($mensajeError)
+  <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 flex items-center justify-between gap-3 text-sm font-600">
+    <span>{{ $mensajeError }}</span>
+    <button wire:click="$set('mensajeError', '')" class="text-red-400 hover:text-red-600 text-xs">Cerrar</button>
+  </div>
+  @endif
+
   {{-- Cabecera + botón nuevo --}}
   <div class="flex flex-col sm:flex-row sm:items-center gap-3">
     <div class="flex-1">

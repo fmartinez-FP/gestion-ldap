@@ -16,8 +16,12 @@ class ImportarCSV extends Component
 
     public function mount(): void
     {
-        $ldap = new LdapService();
-        $this->gruposValidos = array_column($ldap->getAllGroups(), 'cn');
+        // Los grupos globales (p. ej. admins) no se asignan por CSV: se gestionan desde su sección
+        $ldap = app(LdapService::class);
+        $this->gruposValidos = array_column(
+            array_filter($ldap->getAllGroups(), fn($g) => !$g['global']),
+            'cn'
+        );
     }
 
     protected function rules(): array

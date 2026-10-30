@@ -18,7 +18,7 @@
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
       </svg>
-      Nueva aplicación
+      Nueva aplicación o grupo
     </button>
   </div>
 
@@ -93,38 +93,87 @@
   @if($mostrarModal)
   <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
-      <h3 class="text-slate-800 font-700 mb-5">{{ $editandoId ? 'Editar aplicación' : 'Nueva aplicación' }}</h3>
+      <h3 class="text-slate-800 font-700 mb-5">
+        {{ $editandoId ? 'Editar aplicación' : ($tipo === 'global' ? 'Nuevo grupo global' : 'Nueva aplicación') }}
+      </h3>
+
+      @if(!$editandoId)
+      {{-- Tipo de grupo --}}
+      <div class="grid grid-cols-2 gap-2 mb-5">
+        <button type="button" wire:click="$set('tipo', 'aplicacion')"
+          class="py-2 px-3 rounded-xl border text-sm font-600 transition-colors
+            {{ $tipo === 'aplicacion' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50' }}">
+          Aplicación
+        </button>
+        <button type="button" wire:click="$set('tipo', 'global')"
+          class="py-2 px-3 rounded-xl border text-sm font-600 transition-colors
+            {{ $tipo === 'global' ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50' }}">
+          Grupo global (sin aplicación)
+        </button>
+      </div>
+      @endif
 
       <div class="space-y-4">
+        @if($editandoId || $tipo !== 'global')
         <div>
           <label class="block text-sm font-600 text-slate-700 mb-1.5">Nombre <span class="text-red-500">*</span></label>
           <input wire:model="nombre" type="text" placeholder="Gestión de Tutorías"
             class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           @error('nombre') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
+        @endif
 
         @if(!$editandoId)
         <div>
+          @if($tipo === 'global')
+          <label class="block text-sm font-600 text-slate-700 mb-1.5">Nombre del grupo <span class="text-red-500">*</span></label>
+          <input wire:model="codigo" type="text" placeholder="admins"
+            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500">
+          <p class="text-xs text-slate-400 mt-1">Solo letras, números, guion (-) y guion bajo (_). Será el <code>cn</code> del grupo en LDAP.</p>
+          @else
           <label class="block text-sm font-600 text-slate-700 mb-1.5">Código (para LDAP) <span class="text-red-500">*</span></label>
           <input wire:model="codigo" type="text" placeholder="tutorias"
             class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
           <p class="text-xs text-slate-400 mt-1">Sólo letras minúsculas, números y guiones. Se usará como nombre del grupo LDAP.</p>
+          @endif
           @error('codigo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
         @endif
 
         <div>
-          <label class="block text-sm font-600 text-slate-700 mb-1.5">Descripción</label>
-          <input wire:model="descripcion" type="text" placeholder="Gestión de tutorías y seguimiento"
+          <label class="block text-sm font-600 text-slate-700 mb-1.5">
+            Descripción @if($tipo === 'global' && !$editandoId)<span class="text-red-500">*</span>@endif
+          </label>
+          <input wire:model="descripcion" type="text"
+            placeholder="{{ $tipo === 'global' && !$editandoId ? 'Administradores de todas las aplicaciones' : 'Gestión de tutorías y seguimiento' }}"
             class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          @error('descripcion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
 
+        @if(!$editandoId && $tipo === 'global')
+        <div>
+          <label class="block text-sm font-600 text-slate-700 mb-1.5">Miembro inicial <span class="text-red-500">*</span></label>
+          <select wire:model="miembroInicial"
+            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500">
+            <option value="">— Elige un usuario —</option>
+            @foreach($usuarios as $u)
+              <option value="{{ $u['uid'] }}">{{ trim($u['apellidos'] . ', ' . $u['nombre'], ', ') }} ({{ $u['uid'] }})</option>
+            @endforeach
+          </select>
+          <p class="text-xs text-slate-400 mt-1">Un grupo necesita al menos un miembro. Después podrás añadir y quitar más.</p>
+          @error('miembroInicial') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+        @endif
+
+        @if($editandoId || $tipo !== 'global')
         <div>
           <label class="block text-sm font-600 text-slate-700 mb-1.5">URL de acceso</label>
           <input wire:model="url" type="url" placeholder="http://172.16.90.55:8084"
             class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
+        @endif
 
+        @if($editandoId || $tipo !== 'global')
         <div class="flex items-center gap-4">
           <div class="flex-1">
             <label class="block text-sm font-600 text-slate-700 mb-1.5">Color identificativo</label>
@@ -137,6 +186,7 @@
               class="w-20 px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
         </div>
+        @endif
       </div>
 
       <div class="flex gap-3 mt-6">
@@ -146,7 +196,7 @@
         </button>
         <button wire:click="guardar"
           class="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-700 transition-colors">
-          {{ $editandoId ? 'Guardar' : 'Crear aplicación' }}
+          {{ $editandoId ? 'Guardar' : ($tipo === 'global' ? 'Crear grupo global' : 'Crear aplicación') }}
         </button>
       </div>
     </div>

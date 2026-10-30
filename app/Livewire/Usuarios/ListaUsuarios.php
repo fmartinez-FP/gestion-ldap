@@ -18,6 +18,7 @@ class ListaUsuarios extends Component
     public ?string $confirmarEliminar = null;
     public bool $mostrarExito = false;
     public string $mensajeExito = '';
+    public string $mensajeError = '';
 
     protected LdapService $ldap;
 
@@ -52,8 +53,23 @@ class ListaUsuarios extends Component
     {
         if (!$this->confirmarEliminar) return;
 
-        $this->ldap->deleteUser($this->confirmarEliminar);
+        $uid = $this->confirmarEliminar;
         $this->confirmarEliminar = null;
+        $this->mensajeError      = '';
+
+        // Un grupo global no puede quedarse sin miembros
+        $bloqueantes = $this->ldap->lastMemberGlobalGroups($uid);
+        if ($bloqueantes) {
+            $this->mensajeError = "No se puede eliminar a '{$uid}': es el último miembro del grupo global "
+                . implode(', ', $bloqueantes) . '. Añade antes a otro miembro.';
+            return;
+        }
+
+        if (!$this->ldap->deleteUser($uid)) {
+            $this->mensajeError = "No se pudo eliminar a '{$uid}'. Revisa los logs.";
+            return;
+        }
+
         $this->flash('Usuario eliminado correctamente.');
     }
 

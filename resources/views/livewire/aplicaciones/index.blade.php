@@ -3,5 +3,8 @@
 @section('title', 'Aplicaciones')
 @section('page-title', 'Aplicaciones registradas')
 @section('content')
-<livewire:aplicaciones.gestor-apps />
+<div class="space-y-8">
+  <livewire:aplicaciones.gestor-apps />
+  <livewire:aplicaciones.grupos-globales />
+</div>
 @endsection

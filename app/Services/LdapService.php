@@ -237,7 +237,7 @@ class LdapService
 
     public function getUser(string $uid): ?array
     {
-        $filter  = "(uid={$uid})";
+        $filter  = '(uid=' . ldap_escape($uid, '', LDAP_ESCAPE_FILTER) . ')';
         $attrs   = ['uid', 'cn', 'givenName', 'sn', 'mail', 'shadowExpire', 'memberOf'];
         $result  = ldap_search($this->ldap, $this->usersDn, $filter, $attrs);
         if (!$result) return null;
@@ -270,15 +270,18 @@ class LdapService
             return false;
         }
 
-        foreach ($data['grupos'] ?? [] as $grupo) {
+        // Los grupos globales se gestionan solo desde su propia sección
+        $grupos = $this->withoutGlobalGroups($data['grupos'] ?? []);
+
+        foreach ($grupos as $grupo) {
             $this->addToGroup($uid, $grupo);
         }
 
-        AuditLog::record('create_user', $uid, ['mail' => $data['mail'], 'grupos' => $data['grupos'] ?? []]);
+        AuditLog::record('create_user', $uid, ['mail' => $data['mail'], 'grupos' => $grupos]);
 
         if (!empty($data['mail'])) {
             try {
-                $appNames = Aplicacion::whereIn('codigo', $data['grupos'] ?? [])
+                $appNames = Aplicacion::whereIn('codigo', $grupos)
                     ->orderBy('nombre')->pluck('nombre')->toArray();
                 Mail::to($data['mail'])->send(new NuevoUsuario(
                     nombre:   $data['nombre_completo'],
@@ -314,8 +317,9 @@ class LdapService
             return false;
         }
 
-        $currentGroups = $this->getUserGroups($uid);
-        $newGroups     = $data['grupos'] ?? [];
+        // Editar un usuario nunca añade ni quita pertenencias a grupos globales
+        $currentGroups = $this->withoutGlobalGroups($this->getUserGroups($uid));
+        $newGroups     = $this->withoutGlobalGroups($data['grupos'] ?? []);
 
         foreach (array_diff($newGroups, $currentGroups) as $add) {
             $this->addToGroup($uid, $add);
@@ -330,6 +334,13 @@ class LdapService
 
     public function deleteUser(string $uid): bool
     {
+        // groupOfNames exige al menos un member: no se deja un grupo global vacío
+        $bloqueantes = $this->lastMemberGlobalGroups($uid);
+        if ($bloqueantes) {
+            Log::warning("LDAP deleteUser {$uid} rechazado: último miembro de " . implode(', ', $bloqueantes));
+            return false;
+        }
+
         foreach ($this->getUserGroups($uid) as $grupo) {
             $this->removeFromGroup($uid, $grupo);
         }
@@ -392,6 +403,12 @@ class LdapService
 
     public function removeFromGroup(string $uid, string $groupCn): bool
     {
+        // Un grupo global no puede quedarse sin miembros (groupOfNames exige member)
+        $group = $this->getGroup($groupCn);
+        if ($group && $group['global'] && count($group['memberDns']) <= 1) {
+            return false;
+        }
+
         $groupDn = "cn={$groupCn},{$this->groupsDn}";
         $userDn  = "uid={$uid},{$this->usersDn}";
         return ldap_mod_del($this->ldap, $groupDn, ['member' => $userDn]);
@@ -400,7 +417,7 @@ class LdapService
     public function getAllGroups(): array
     {
         $filter  = '(objectClass=groupOfNames)';
-        $result  = ldap_search($this->ldap, $this->groupsDn, $filter, ['cn', 'description', 'member']);
+        $result  = ldap_search($this->ldap, $this->groupsDn, $filter, ['cn', 'description', 'member', 'businessCategory']);
         if (!$result) return [];
 
         $entries = ldap_get_entries($this->ldap, $result);
@@ -412,6 +429,7 @@ class LdapService
                 'cn'          => $e['cn'][0],
                 'description' => $e['description'][0] ?? '',
                 'miembros'    => $e['member']['count'] ?? 0,
+                'global'      => $this->hasGlobalMark($e),
             ];
         }
 
@@ -440,6 +458,235 @@ class LdapService
         $result = ldap_delete($this->ldap, "cn={$cn},{$this->groupsDn}");
         if ($result) AuditLog::record('delete_group', $cn);
         return $result;
+    }
+
+    // ── Grupos globales (sin aplicación) ─────────────────────────────────────
+    //
+    // Un grupo global es un groupOfNames más en ou=groups, marcado con
+    // businessCategory=global (atributo MAY de groupOfNames: no cambia el
+    // esquema). No tiene fila en la tabla aplicaciones, así que no aparece
+    // como aplicación ni en el lanzador. Los grupos existentes no llevan la
+    // marca y no se ven afectados.
+
+    public const GLOBAL_GROUP_MARK = 'global';
+
+    /** Letras, números, guion y guion bajo (ASCII); máx. 64 caracteres. */
+    public static function isValidGroupName(string $cn): bool
+    {
+        return strlen($cn) <= 64 && preg_match('/^[A-Za-z0-9_-]+\z/', $cn) === 1;
+    }
+
+    public static function isValidUid(string $uid): bool
+    {
+        return strlen($uid) <= 64 && preg_match('/^[A-Za-z0-9._-]+\z/', $uid) === 1;
+    }
+
+    /** Devuelve el grupo (cualquier tipo) o null. El cn se compara sin distinguir mayúsculas, como hace LDAP. */
+    public function getGroup(string $cn): ?array
+    {
+        if (!self::isValidGroupName($cn)) return null;
+
+        $filter = '(&(objectClass=groupOfNames)(cn=' . ldap_escape($cn, '', LDAP_ESCAPE_FILTER) . '))';
+        $result = ldap_search($this->ldap, $this->groupsDn, $filter,
+            ['cn', 'description', 'member', 'businessCategory'], 0, 1);
+        if (!$result) return null;
+
+        $entries = ldap_get_entries($this->ldap, $result);
+        if ($entries['count'] === 0) return null;
+
+        return $this->parseGroup($entries[0]);
+    }
+
+    public function groupExists(string $cn): bool
+    {
+        return $this->getGroup($cn) !== null;
+    }
+
+    /** Grupos globales ordenados por nombre, con sus miembros (uids). */
+    public function getGlobalGroups(): array
+    {
+        $filter = '(&(objectClass=groupOfNames)(businessCategory=' . self::GLOBAL_GROUP_MARK . '))';
+        $result = ldap_search($this->ldap, $this->groupsDn, $filter,
+            ['cn', 'description', 'member', 'businessCategory']);
+        if (!$result) return [];
+
+        $entries = ldap_get_entries($this->ldap, $result);
+        $groups  = [];
+        for ($i = 0; $i < $entries['count']; $i++) {
+            $groups[] = $this->parseGroup($entries[$i]);
+        }
+
+        usort($groups, fn($a, $b) => strcasecmp($a['cn'], $b['cn']));
+        return $groups;
+    }
+
+    public function getGlobalGroupNames(): array
+    {
+        return array_column($this->getGlobalGroups(), 'cn');
+    }
+
+    /** Quita de la lista los nombres de grupos globales (comparación sin distinguir mayúsculas). */
+    public function withoutGlobalGroups(array $names): array
+    {
+        $globales = array_map('strtolower', $this->getGlobalGroupNames());
+        return array_values(array_filter($names, fn($n) => !in_array(strtolower($n), $globales, true)));
+    }
+
+    /** Grupos globales de los que $uid es el único miembro. */
+    public function lastMemberGlobalGroups(string $uid): array
+    {
+        $userDn = strtolower($this->memberDn($uid));
+        $result = [];
+        foreach ($this->getGlobalGroups() as $g) {
+            if (count($g['memberDns']) === 1 && strtolower($g['memberDns'][0]) === $userDn) {
+                $result[] = $g['cn'];
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Crea un grupo global con un miembro inicial (groupOfNames exige al menos uno).
+     *
+     * @throws \InvalidArgumentException si el nombre no es válido o ya existe, o el usuario no existe.
+     */
+    public function createGlobalGroup(string $cn, string $description, string $initialUid): bool
+    {
+        if (!self::isValidGroupName($cn)) {
+            throw new \InvalidArgumentException('El nombre solo puede contener letras, números, guion y guion bajo (máx. 64).');
+        }
+        if ($this->groupExists($cn)) {
+            throw new \InvalidArgumentException("Ya existe un grupo llamado '{$cn}'.");
+        }
+        $this->assertUserExists($initialUid);
+
+        $entry = [
+            'objectClass'      => ['groupOfNames'],
+            'cn'               => $cn,
+            'businessCategory' => self::GLOBAL_GROUP_MARK,
+            'member'           => $this->memberDn($initialUid),
+        ];
+        if (trim($description) !== '') {
+            $entry['description'] = trim($description);
+        }
+
+        if (!ldap_add($this->ldap, $this->groupDn($cn), $entry)) {
+            Log::error("LDAP createGlobalGroup {$cn}: " . ldap_error($this->ldap));
+            return false;
+        }
+
+        AuditLog::record('create_global_group', $cn, [
+            'description'    => trim($description),
+            'miembro_inicial' => $initialUid,
+        ]);
+        return true;
+    }
+
+    /**
+     * @throws \InvalidArgumentException si el grupo no es global, el usuario no existe o ya es miembro.
+     */
+    public function addGlobalGroupMember(string $cn, string $uid): bool
+    {
+        $group = $this->requireGlobalGroup($cn);
+        $this->assertUserExists($uid);
+
+        $userDn = $this->memberDn($uid);
+        if (in_array(strtolower($userDn), array_map('strtolower', $group['memberDns']), true)) {
+            throw new \InvalidArgumentException("'{$uid}' ya es miembro de '{$group['cn']}'.");
+        }
+
+        if (!ldap_mod_add($this->ldap, $this->groupDn($group['cn']), ['member' => $userDn])) {
+            Log::error("LDAP addGlobalGroupMember {$cn}/{$uid}: " . ldap_error($this->ldap));
+            return false;
+        }
+
+        AuditLog::record('add_group_member', $group['cn'], ['uid' => $uid]);
+        return true;
+    }
+
+    /**
+     * @throws \InvalidArgumentException si el grupo no es global, no es miembro o es el último miembro.
+     */
+    public function removeGlobalGroupMember(string $cn, string $uid): bool
+    {
+        $group  = $this->requireGlobalGroup($cn);
+        $userDn = $this->memberDn($uid);
+
+        $dns = array_map('strtolower', $group['memberDns']);
+        if (!in_array(strtolower($userDn), $dns, true)) {
+            throw new \InvalidArgumentException("'{$uid}' no es miembro de '{$group['cn']}'.");
+        }
+        if (count($dns) <= 1) {
+            throw new \InvalidArgumentException("No se puede quitar al último miembro: el grupo '{$group['cn']}' debe tener al menos uno.");
+        }
+
+        if (!ldap_mod_del($this->ldap, $this->groupDn($group['cn']), ['member' => $userDn])) {
+            Log::error("LDAP removeGlobalGroupMember {$cn}/{$uid}: " . ldap_error($this->ldap));
+            return false;
+        }
+
+        AuditLog::record('remove_group_member', $group['cn'], ['uid' => $uid]);
+        return true;
+    }
+
+    private function requireGlobalGroup(string $cn): array
+    {
+        $group = $this->getGroup($cn);
+        if (!$group || !$group['global']) {
+            throw new \InvalidArgumentException("'{$cn}' no es un grupo global.");
+        }
+        return $group;
+    }
+
+    private function assertUserExists(string $uid): void
+    {
+        if (!self::isValidUid($uid) || !$this->getUser($uid)) {
+            throw new \InvalidArgumentException("El usuario '{$uid}' no existe.");
+        }
+    }
+
+    private function groupDn(string $cn): string
+    {
+        return 'cn=' . ldap_escape($cn, '', LDAP_ESCAPE_DN) . ",{$this->groupsDn}";
+    }
+
+    private function memberDn(string $uid): string
+    {
+        return 'uid=' . ldap_escape($uid, '', LDAP_ESCAPE_DN) . ",{$this->usersDn}";
+    }
+
+    private function hasGlobalMark(array $entry): bool
+    {
+        $n = $entry['businesscategory']['count'] ?? 0;
+        for ($i = 0; $i < $n; $i++) {
+            if (strcasecmp($entry['businesscategory'][$i], self::GLOBAL_GROUP_MARK) === 0) return true;
+        }
+        return false;
+    }
+
+    private function parseGroup(array $entry): array
+    {
+        $dns = [];
+        for ($j = 0; $j < ($entry['member']['count'] ?? 0); $j++) {
+            $dns[] = $entry['member'][$j];
+        }
+
+        $suffix = strtolower(',' . $this->usersDn);
+        $uids   = [];
+        foreach ($dns as $dn) {
+            if (str_ends_with(strtolower($dn), $suffix)
+                && preg_match('/^uid=([^,]+)$/i', substr($dn, 0, -strlen($suffix)), $m)) {
+                $uids[] = $m[1];
+            }
+        }
+
+        return [
+            'cn'          => $entry['cn'][0],
+            'description' => $entry['description'][0] ?? '',
+            'global'      => $this->hasGlobalMark($entry),
+            'memberDns'   => $dns,
+            'miembros'    => $uids,
+        ];
     }
 
     // =========================================================================

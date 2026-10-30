@@ -1,9 +1,11 @@
 <?php
 namespace App\Providers;
+use App\Http\Middleware\AdminAuth;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,6 +13,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Las acciones de Livewire (/livewire/update) no pasan por el middleware de la ruta de la
+        // página; sin esto, AdminAuth solo protegería la carga inicial de los paneles de administración.
+        Livewire::addPersistentMiddleware([AdminAuth::class]);
+
         // 5 intentos por minuto por IP — al superarlo redirige al login con error
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)
