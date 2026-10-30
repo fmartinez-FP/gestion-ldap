@@ -51,6 +51,7 @@ rsync -a \
     --exclude='node_modules/' \
     --exclude='.env' \
     --exclude='*.sqlite' \
+    --exclude='.phpunit.result.cache' \
     --exclude='storage/logs/*.log' \
     --exclude='storage/framework/cache/data/*' \
     --exclude='storage/framework/sessions/*' \
@@ -94,12 +95,16 @@ elif [ -f "/root/gestion-ldap-opt-d/docker-compose.dist.yml" ]; then
 fi
 
 # ── .env.example actualizado ──────────────────────────────────────────────────
-if [ -f "/root/gestion-ldap-opt-d/.env.dist.example" ]; then
+if [ -f "${SCRIPT_DIR}/.env.dist.example" ]; then
+    cp "${SCRIPT_DIR}/.env.dist.example" "$TEMP_DIR/.env.example"
+elif [ -f "/root/gestion-ldap-opt-d/.env.dist.example" ]; then
     cp /root/gestion-ldap-opt-d/.env.dist.example "$TEMP_DIR/.env.example"
 fi
 
 # ── INSTALL.md actualizado ────────────────────────────────────────────────────
-if [ -f "/root/gestion-ldap-opt-d/INSTALL.md" ]; then
+if [ -f "${SCRIPT_DIR}/INSTALL.md" ]; then
+    cp "${SCRIPT_DIR}/INSTALL.md" "$TEMP_DIR/INSTALL.md"
+elif [ -f "/root/gestion-ldap-opt-d/INSTALL.md" ]; then
     cp /root/gestion-ldap-opt-d/INSTALL.md "$TEMP_DIR/INSTALL.md"
 fi
 

@@ -56,7 +56,7 @@ COPY docker/php/php.ini        /usr/local/etc/php/conf.d/zzz-custom.ini
 COPY docker/nginx/nginx.conf   /etc/nginx/nginx.conf
 COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf   /etc/supervisor/conf.d/supervisord.conf
-COPY --chmod=755 docker/log-rotate.sh /usr/local/bin/log-rotate.sh
+COPY docker/log-rotate.sh      /usr/local/bin/log-rotate.sh
 
 # ── Código de la aplicación ───────────────────────────────────────────────────
 WORKDIR /var/www/html
@@ -87,7 +87,7 @@ RUN cp -a /var/www/html/public /srv/public-seed
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────
 COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh /usr/local/bin/log-rotate.sh
 
 EXPOSE 80
 

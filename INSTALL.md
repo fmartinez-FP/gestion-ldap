@@ -72,6 +72,8 @@ MAIL_PORT=587
 MAIL_USERNAME=gestion@tucentro.es
 MAIL_PASSWORD=ContraseñaSMTP!
 MAIL_FROM_ADDRESS=gestion@tucentro.es
+
+MAIL_DOMAIN=tucentro.es               # Dominio obligatorio en el correo de los usuarios (@tucentro.es)
 ```
 
 > Guarda `.env` con permisos restrictivos: `chmod 600 .env`
@@ -151,9 +153,17 @@ docker cp /ruta/local/mi-app.png gestion-ldap-app:/var/www/html/public/icons/mi-
 Formatos recomendados: PNG con fondo transparente, 64×64 px o mayor.
 
 ### Grupos LDAP por aplicación
-Cada aplicación puede tener un grupo LDAP asociado. Cuando creas/editas una aplicación en el panel puedes asignarle un grupo. Solo los usuarios que pertenezcan a ese grupo tendrán acceso a esa aplicación.
+Cada aplicación tiene asociado un grupo LDAP (`groupOfNames` en `ou=groups`) cuyo nombre es el **código** de la aplicación. El grupo se crea automáticamente al crear la aplicación en el panel. Solo los usuarios que pertenezcan a ese grupo ven y pueden usar esa aplicación; para darles acceso, edita el usuario en **Usuarios** y marca sus grupos.
 
-Para crear el grupo LDAP desde el panel: ve a **Usuarios** → selecciona un usuario → edita sus grupos. Los grupos se crean automáticamente al asignarlos por primera vez.
+### Grupos globales (sin aplicación)
+Un grupo global es un grupo LDAP que **no está asociado a ninguna aplicación** (no necesita URL ni IP). Sirve, por ejemplo, para un grupo `admins` con los administradores de todas las aplicaciones: las aplicaciones comprueban el atributo `memberOf` del usuario y deciden qué hacer con él.
+
+Para crearlo: **Aplicaciones** → **Nueva aplicación o grupo** → tipo **Grupo global (sin aplicación)**. Indica el nombre (solo letras, números, guion y guion bajo; debe ser único), una descripción y el usuario que será el primer miembro.
+
+- Aparecen en la sección **Grupos globales** con la etiqueta *Global*, no como aplicaciones ni en el portal de los usuarios.
+- Desde esa sección se añaden y quitan miembros por usuario. **No se puede quitar (ni borrar) al último miembro**: un `groupOfNames` no puede quedar vacío.
+- Solo los administradores del panel pueden crearlos y modificarlos. La asignación de grupos al editar usuarios o importar CSV no los toca.
+- En LDAP se marcan con `businessCategory: global` (no requiere cambios de esquema).
 
 ---
 
@@ -225,6 +235,8 @@ docker compose logs -f app    # Logs del panel
 docker compose logs -f ldap   # Logs de OpenLDAP
 docker compose logs -f mysql  # Logs de MySQL
 ```
+
+Los logs de nginx (`access` y `error`) están en el volumen de la app (`storage/logs/`). Se rotan automáticamente al llegar a 20 MB (se conservan 5 copias comprimidas) y las comprobaciones de salud del propio contenedor no se registran.
 
 ### Reiniciar un servicio
 ```bash

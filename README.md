@@ -8,7 +8,7 @@ Desarrollado con **Laravel 12 + Livewire**, completamente dockerizado y listo pa
 
 ## ¿Qué incluye?
 
-- **Panel de administración** — gestión completa de usuarios y grupos LDAP
+- **Panel de administración** — gestión completa de usuarios y grupos LDAP, incluidos grupos globales no asociados a ninguna aplicación (p. ej. `admins`)
 - **Portal de usuario** — los usuarios pueden cambiar su contraseña sin intervención del administrador
 - **Importación masiva** — carga de usuarios desde CSV
 - **Exportación LDIF** — backup de usuarios en formato estándar

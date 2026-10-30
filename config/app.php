@@ -17,6 +17,9 @@ return [
 
     'center_name' => env('CENTER_NAME', 'Mi Centro'),
 
+    // Dominio obligatorio en el correo de los usuarios (@dominio)
+    'mail_domain' => env('MAIL_DOMAIN', 'micentro.es'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment
